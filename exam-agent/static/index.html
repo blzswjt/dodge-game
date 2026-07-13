@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品知识考试与问答系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航 */
+        .navbar {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 16px 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar h1 { font-size: 20px; font-weight: 600; }
+        .navbar .status { font-size: 13px; opacity: 0.9; }
+        .status-dot {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #ff9800;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .status-dot.loaded { background: #4caf50; }
+
+        /* Tab 切换 */
+        .tabs {
+            display: flex;
+            gap: 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 0 32px;
+        }
+        .tab {
+            padding: 14px 28px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .tab:hover { color: #1a73e8; }
+        .tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+        }
+
+        /* 主内容区 */
+        .container {
+            max-width: 900px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* 文档加载区 */
+        .doc-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .doc-section h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        .doc-info {
+            background: #e8f0fe;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            font-size: 14px;
+            color: #1a73e8;
+            display: none;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .upload-area:hover { border-color: #1a73e8; }
+        .upload-area input[type="file"] { display: none; }
+        .upload-area p { color: #666; font-size: 14px; }
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #f0f2f5;
+            color: #333;
+        }
+        .btn-secondary:hover { background: #e4e7eb; }
+
+        /* 问答区 */
+        .qa-box {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .qa-messages {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            padding: 8px 0;
+        }
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message.user { align-items: flex-end; }
+        .message.assistant { align-items: flex-start; }
+        .message-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .message.user .message-bubble {
+            background: #1a73e8;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant .message-bubble {
+            background: #f0f2f5;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+        .qa-input-area {
+            display: flex;
+            gap: 12px;
+        }
+        .qa-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .qa-input:focus { border-color: #1a73e8; }
+
+        /* 考试区 */
+        .exam-box {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .exam-header h3 { font-size: 18px; }
+        .exam-section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a73e8;
+            margin: 24px 0 12px;
+            padding: 8px 12px;
+            background: #e8f0fe;
+            border-radius: 6px;
+        }
+        .question-item {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .question-text {
+            font-size: 14px;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        .question-num {
+            font-weight: 700;
+            color: #1a73e8;
+            margin-right: 6px;
+        }
+        .question-source {
+            font-size: 12px;
+            color: #999;
+            margin-left: 8px;
+        }
+        .options { margin-left: 8px; }
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        .option-item:hover { background: #e8f0fe; }
+        .option-item.selected { background: #d0e3ff; }
+        .option-item.correct { background: #c8e6c9; }
+        .option-item.wrong { background: #ffcdd2; }
+        .option-label {
+            font-weight: 700;
+            margin-right: 8px;
+            min-width: 20px;
+        }
+        .option-item input[type="checkbox"],
+        .option-item input[type="radio"] {
+            margin-right: 8px;
+        }
+        .answer-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+        }
+        .answer-input:focus { border-color: #1a73e8; }
+        .result-box {
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .result-box.show { display: block; }
+        .result-box.correct {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+        .result-box.wrong {
+            background: #fbe9e7;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+        .result-box .answer-label { font-weight: 700; }
+        .result-box .explanation { margin-top: 8px; color: #666; font-size: 13px; }
+
+        .exam-result-summary {
+            background: #e8f0fe;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .exam-result-summary h3 { font-size: 22px; color: #1a73e8; }
+        .score-big { font-size: 48px; font-weight: 700; color: #1a73e8; }
+        .exam-result-summary p { margin-top: 8px; color: #555; }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #999;
+            font-size: 14px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: #666; }
+        .empty-state p { font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="navbar">
+    <h1>📚 产品知识考试与问答系统</h1>
+    <div class="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">未加载文档</span>
+    </div>
+</div>
+
+<!-- Tab 切换 -->
+<div class="tabs">
+    <div class="tab active" data-tab="qa" onclick="switchTab('qa')">💬 智能问答</div>
+    <div class="tab" data-tab="exam" onclick="switchTab('exam')">📝 模拟考试</div>
+    <div class="tab" data-tab="doc" onclick="switchTab('doc')">📄 文档管理</div>
+</div>
+
+<div class="container">
+    <!-- 智能问答 Panel -->
+    <div class="panel active" id="panel-qa">
+        <div class="qa-box">
+            <div class="qa-messages" id="qaMessages">
+                <div class="empty-state">
+                    <h3>💬 智能问答</h3>
+                    <p>在下方输入框中提问，系统将基于产品介绍文档回答您的问题</p>
+                </div>
+            </div>
+            <div class="qa-input-area">
+                <input type="text" class="qa-input" id="qaInput" placeholder="请输入您的问题..."
+                    onkeypress="if(event.key==='Enter') sendQuestion()">
+                <button class="btn btn-primary" id="qaSendBtn" onclick="sendQuestion()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模拟考试 Panel -->
+    <div class="panel" id="panel-exam">
+        <div class="exam-box" id="examBox">
+            <div class="empty-state" id="examEmpty">
+                <h3>📝 模拟考试</h3>
+                <p>点击下方按钮生成试卷（10单选 + 10多选 + 10判断 + 2简答）</p>
+                <br>
+                <button class="btn btn-primary" id="genExamBtn" onclick="generateExam()">生成试卷</button>
+            </div>
+            <div id="examContent" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- 文档管理 Panel -->
+    <div class="panel" id="panel-doc">
+        <div class="doc-section">
+            <h3>📄 文档管理</h3>
+            <div class="doc-info" id="docInfo"></div>
+            <br>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <p>📁 点击上传 .docx 文件</p>
+                <input type="file" id="fileInput" accept=".docx" onchange="uploadFile(event)">
+            </div>
+            <br>
+            <button class="btn btn-secondary" onclick="loadDefault()">加载默认文档</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// Tab 切换
+// ============================================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+    document.getElementById(`panel-${tab}`).classList.add('active');
+}
+
+// ============================================================
+// 文档加载状态检查
+// ============================================================
+async function checkStatus() {
+    try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data.loaded) {
+            document.getElementById('statusDot').classList.add('loaded');
+            document.getElementById('statusText').textContent = `已加载 ${data.modules} 个模块`;
+            showDocInfo(data);
+        } else {
+            // 尝试加载默认文档
+            loadDefault(true);
+        }
+    } catch (e) {
+        console.error('状态检查失败:', e);
+    }
+}
+
+function showDocInfo(data) {
+    const info = document.getElementById('docInfo');
+    info.style.display = 'block';
+    info.innerHTML = `
+        <strong>文档已加载</strong><br>
+        模块数：${data.modules}<br>
+        总字符数：${data.total_chars.toLocaleString()}<br>
+        模块列表：${data.module_names.join('、')}
+    `;
+}
+
+// ============================================================
+// 文档上传
+// ============================================================
+async function uploadFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    document.getElementById('statusText').textContent = '正在加载...';
+    try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        document.getElementById('statusDot').classList.add('loaded');
+        document.getElementById('statusText').textContent = `已加载 ${data.modules} 个模块`;
+        showDocInfo({
+            modules: data.modules,
+            total_chars: data.total_chars,
+            module_names: data.module_names
+        });
+        alert('文档加载成功！');
+    } catch (e) {
+        alert('上传失败: ' + e.message);
+    }
+}
+
+async function loadDefault(silent = false) {
+    try {
+        const res = await fetch('/api/load-default', { method: 'POST' });
+        const data = await res.json();
+        if (data.error) {
+            if (!silent) alert(data.error);
+            return;
+        }
+        document.getElementById('statusDot').classList.add('loaded');
+        document.getElementById('statusText').textContent = `已加载: ${data.filename}`;
+        showDocInfo({
+            modules: data.modules,
+            total_chars: data.total_chars,
+            module_names: data.module_names
+        });
+    } catch (e) {
+        console.error('加载默认文档失败:', e);
+    }
+}
+
+// ============================================================
+// 智能问答（流式）
+// ============================================================
+let qaHistory = [];
+
+async function sendQuestion() {
+    const input = document.getElementById('qaInput');
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = '';
+    document.getElementById('qaSendBtn').disabled = true;
+
+    // 清空空状态
+    const messagesDiv = document.getElementById('qaMessages');
+    const emptyState = messagesDiv.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+
+    // 添加用户消息
+    appendMessage('user', question);
+
+    // 添加AI消息占位
+    const aiDiv = appendMessage('assistant', '<div class="loading"></div>');
+    const bubble = aiDiv.querySelector('.message-bubble');
+
+    try {
+        const response = await fetch('/api/qa/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === '[DONE]') continue;
+                    try {
+                        const data = JSON.parse(dataStr);
+                        if (data.content) {
+                            fullText += data.content;
+                            bubble.innerHTML = fullText;
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        if (!fullText) {
+            bubble.innerHTML = '抱歉，未能获取到答案。';
+        }
+    } catch (e) {
+        bubble.innerHTML = '请求出错: ' + e.message;
+    }
+
+    document.getElementById('qaSendBtn').disabled = false;
+    input.focus();
+}
+
+function appendMessage(role, content) {
+    const messagesDiv = document.getElementById('qaMessages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.innerHTML = `<div class="message-bubble">${content}</div>`;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    return div;
+}
+
+// ============================================================
+// 考试生成
+// ============================================================
+let currentExam = null;
+
+async function generateExam() {
+    const btn = document.getElementById('genExamBtn');
+    const empty = document.getElementById('examEmpty');
+    const content = document.getElementById('examContent');
+
+    btn.disabled = true;
+    btn.textContent = '正在生成试卷...';
+    empty.innerHTML = '<div class="loading-text"><div class="loading" style="margin:0 auto;"></div><br>正在生成试卷，请耐心等待（约30-60秒）...</div>';
+
+    try {
+        const res = await fetch('/api/exam/generate', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.error) {
+            alert(data.error);
+            btn.disabled = false;
+            btn.textContent = '生成试卷';
+            empty.innerHTML = `<h3>📝 模拟考试</h3><p>${data.error}</p>`;
+            return;
+        }
+
+        currentExam = data.exam;
+        renderExam(data.exam, data.counts);
+    } catch (e) {
+        alert('生成失败: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = '生成试卷';
+        empty.innerHTML = `<h3>📝 模拟考试</h3><p>生成失败: ${e.message}</p>`;
+    }
+}
+
+function renderExam(exam, counts) {
+    const content = document.getElementById('examContent');
+    document.getElementById('examEmpty').style.display = 'none';
+    content.style.display = 'block';
+
+    let html = `
+        <div class="exam-header">
+            <h3>模拟试卷</h3>
+            <button class="btn btn-primary" onclick="submitExam()">提交答卷</button>
+        </div>
+    `;
+
+    // 单选题
+    if (exam.single && exam.single.length > 0) {
+        html += '<div class="exam-section-title">一、单选题（每题只有一个正确答案）</div>';
+        exam.single.forEach((q, i) => {
+            html += renderSingleChoice(q, i);
+        });
+    }
+
+    // 多选题
+    if (exam.multiple && exam.multiple.length > 0) {
+        html += '<div class="exam-section-title">二、多选题（每题有2-4个正确答案）</div>';
+        exam.multiple.forEach((q, i) => {
+            html += renderMultipleChoice(q, i);
+        });
+    }
+
+    // 判断题
+    if (exam.judge && exam.judge.length > 0) {
+        html += '<div class="exam-section-title">三、判断题</div>';
+        exam.judge.forEach((q, i) => {
+            html += renderJudge(q, i);
+        });
+    }
+
+    // 简答题
+    if (exam.short && exam.short.length > 0) {
+        html += '<div class="exam-section-title">四、简答题</div>';
+        exam.short.forEach((q, i) => {
+            html += renderShortAnswer(q, i);
+        });
+    }
+
+    content.innerHTML = html;
+}
+
+function renderSingleChoice(q, idx) {
+    const source = q.source ? `<span class="question-source">[${q.source}]</span>` : '';
+    let options = '';
+    ['A', 'B', 'C', 'D'].forEach(key => {
+        if (q.options && q.options[key]) {
+            options += `
+                <div class="option-item" data-qid="single_${idx}" data-option="${key}" onclick="selectOption(this, false)">
+                    <span class="option-label">${key}.</span>
+                    <span>${q.options[key]}</span>
+                </div>
+            `;
+        }
+    });
+    return `
+        <div class="question-item" id="q_single_${idx}">
+            <div class="question-text">
+                <span class="question-num">${idx + 1}.</span>${q.question}${source}
+            </div>
+            <div class="options">${options}</div>
+            <div class="result-box" id="result_single_${idx}"></div>
+        </div>
+    `;
+}
+
+function renderMultipleChoice(q, idx) {
+    const source = q.source ? `<span class="question-source">[${q.source}]</span>` : '';
+    let options = '';
+    ['A', 'B', 'C', 'D'].forEach(key => {
+        if (q.options && q.options[key]) {
+            options += `
+                <div class="option-item" data-qid="multiple_${idx}" data-option="${key}" onclick="selectOption(this, true)">
+                    <span class="option-label">${key}.</span>
+                    <span>${q.options[key]}</span>
+                </div>
+            `;
+        }
+    });
+    return `
+        <div class="question-item" id="q_multiple_${idx}">
+            <div class="question-text">
+                <span class="question-num">${idx + 1}.</span>${q.question}${source}
+            </div>
+            <div class="options">${options}</div>
+            <div class="result-box" id="result_multiple_${idx}"></div>
+        </div>
+    `;
+}
+
+function renderJudge(q, idx) {
+    const source = q.source ? `<span class="question-source">[${q.source}]</span>` : '';
+    return `
+        <div class="question-item" id="q_judge_${idx}">
+            <div class="question-text">
+                <span class="question-num">${idx + 1}.</span>${q.question}${source}
+            </div>
+            <div class="options">
+                <div class="option-item" data-qid="judge_${idx}" data-option="true" onclick="selectOption(this, false)">
+                    <span class="option-label">✓</span><span>正确</span>
+                </div>
+                <div class="option-item" data-qid="judge_${idx}" data-option="false" onclick="selectOption(this, false)">
+                    <span class="option-label">✗</span><span>错误</span>
+                </div>
+            </div>
+            <div class="result-box" id="result_judge_${idx}"></div>
+        </div>
+    `;
+}
+
+function renderShortAnswer(q, idx) {
+    return `
+        <div class="question-item" id="q_short_${idx}">
+            <div class="question-text">
+                <span class="question-num">${idx + 1}.</span>${q.question}
+            </div>
+            <textarea class="answer-input" id="answer_short_${idx}" placeholder="请在此输入您的答案..."></textarea>
+            <div class="result-box" id="result_short_${idx}"></div>
+        </div>
+    `;
+}
+
+function selectOption(element, isMultiple) {
+    const qid = element.dataset.qid;
+    if (isMultiple) {
+        element.classList.toggle('selected');
+    } else {
+        // 取消同组其他选项
+        document.querySelectorAll(`.option-item[data-qid="${qid}"]`).forEach(el => {
+            el.classList.remove('selected');
+        });
+        element.classList.add('selected');
+    }
+}
+
+// ============================================================
+// 提交答卷
+// ============================================================
+function submitExam() {
+    if (!currentExam) return;
+
+    let totalQuestions = 0;
+    let correctCount = 0;
+    let answeredCount = 0;
+
+    // 单选题
+    if (currentExam.single) {
+        currentExam.single.forEach((q, idx) => {
+            totalQuestions++;
+            const selected = document.querySelector(`.option-item[data-qid="single_${idx}"].selected`);
+            const resultBox = document.getElementById(`result_single_${idx}`);
+            const correctAnswer = q.answer;
+
+            if (selected) {
+                answeredCount++;
+                const userAnswer = selected.dataset.option;
+                if (userAnswer === correctAnswer) {
+                    correctCount++;
+                    showResult(resultBox, true, correctAnswer, q.explanation, selected);
+                } else {
+                    showResult(resultBox, false, correctAnswer, q.explanation, selected);
+                }
+            } else {
+                showResult(resultBox, null, correctAnswer, q.explanation, null);
+            }
+        });
+    }
+
+    // 多选题
+    if (currentExam.multiple) {
+        currentExam.multiple.forEach((q, idx) => {
+            totalQuestions++;
+            const selected = document.querySelectorAll(`.option-item[data-qid="multiple_${idx}"].selected`);
+            const resultBox = document.getElementById(`result_multiple_${idx}`);
+            const correctAnswers = Array.isArray(q.answer) ? q.answer.sort() : [q.answer];
+
+            if (selected.length > 0) {
+                answeredCount++;
+                const userAnswers = Array.from(selected).map(el => el.dataset.option).sort();
+                const isCorrect = JSON.stringify(userAnswers) === JSON.stringify(correctAnswers);
+                if (isCorrect) correctCount++;
+                showMultipleResult(resultBox, isCorrect, correctAnswers, q.explanation, selected);
+            } else {
+                showMultipleResult(resultBox, null, correctAnswers, q.explanation, null);
+            }
+        });
+    }
+
+    // 判断题
+    if (currentExam.judge) {
+        currentExam.judge.forEach((q, idx) => {
+            totalQuestions++;
+            const selected = document.querySelector(`.option-item[data-qid="judge_${idx}"].selected`);
+            const resultBox = document.getElementById(`result_judge_${idx}`);
+            const correctAnswer = q.answer;
+
+            if (selected) {
+                answeredCount++;
+                const userAnswer = selected.dataset.option === 'true';
+                if (userAnswer === correctAnswer) {
+                    correctCount++;
+                    showResult(resultBox, true, correctAnswer ? '正确' : '错误', q.explanation, selected);
+                } else {
+                    showResult(resultBox, false, correctAnswer ? '正确' : '错误', q.explanation, selected);
+                }
+            } else {
+                showResult(resultBox, null, correctAnswer ? '正确' : '错误', q.explanation, null);
+            }
+        });
+    }
+
+    // 简答题 - 显示参考答案
+    if (currentExam.short) {
+        currentExam.short.forEach((q, idx) => {
+            totalQuestions++;
+            const resultBox = document.getElementById(`result_short_${idx}`);
+            const userAnswer = document.getElementById(`answer_short_${idx}`).value.trim();
+            if (userAnswer) {
+                answeredCount++;
+                gradeShortAnswer(q.question, userAnswer, q.answer, resultBox);
+            } else {
+                resultBox.className = 'result-box show wrong';
+                resultBox.innerHTML = `
+                    <div class="answer-label">未作答</div>
+                    <div class="explanation"><strong>参考答案：</strong>${q.answer}</div>
+                `;
+            }
+        });
+    }
+
+    // 显示成绩汇总
+    showExamSummary(totalQuestions, correctCount, answeredCount);
+}
+
+function showResult(box, isCorrect, correctAnswer, explanation, selectedEl) {
+    box.className = 'result-box show';
+    if (isCorrect === true) {
+        box.classList.add('correct');
+        if (selectedEl) selectedEl.classList.add('correct');
+    } else if (isCorrect === false) {
+        box.classList.add('wrong');
+        if (selectedEl) selectedEl.classList.add('wrong');
+    }
+
+    let html = `<div class="answer-label">正确答案：${correctAnswer}</div>`;
+    if (explanation) {
+        html += `<div class="explanation">${explanation}</div>`;
+    }
+    box.innerHTML = html;
+}
+
+function showMultipleResult(box, isCorrect, correctAnswers, explanation, selectedEls) {
+    box.className = 'result-box show';
+    if (isCorrect === true) {
+        box.classList.add('correct');
+        selectedEls.forEach(el => el.classList.add('correct'));
+    } else if (isCorrect === false) {
+        // 标记正确和错误的选项
+        if (selectedEls) {
+            selectedEls.forEach(el => {
+                if (correctAnswers.includes(el.dataset.option)) {
+                    el.classList.add('correct');
+                } else {
+                    el.classList.add('wrong');
+                }
+            });
+        }
+        // 标记未选的正确答案
+        box.classList.add('wrong');
+    }
+
+    let html = `<div class="answer-label">正确答案：${correctAnswers.join('')}</div>`;
+    if (explanation) {
+        html += `<div class="explanation">${explanation}</div>`;
+    }
+    box.innerHTML = html;
+}
+
+async function gradeShortAnswer(question, userAnswer, correctAnswer, resultBox) {
+    resultBox.className = 'result-box show';
+    resultBox.innerHTML = '<div class="loading"></div> 评分中...';
+
+    try {
+        const res = await fetch('/api/exam/grade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, user_answer: userAnswer, correct_answer: correctAnswer })
+        });
+        const data = await res.json();
+
+        const score = data.score || 0;
+        const comment = data.comment || '';
+
+        if (score >= 60) {
+            resultBox.classList.add('correct');
+        } else {
+            resultBox.classList.add('wrong');
+        }
+
+        resultBox.innerHTML = `
+            <div class="answer-label">得分：${score}/100</div>
+            <div class="explanation"><strong>评语：</strong>${comment}</div>
+            <div class="explanation"><strong>参考答案：</strong>${correctAnswer}</div>
+        `;
+    } catch (e) {
+        resultBox.classList.add('wrong');
+        resultBox.innerHTML = `
+            <div class="answer-label">评分失败</div>
+            <div class="explanation"><strong>参考答案：</strong>${correctAnswer}</div>
+        `;
+    }
+}
+
+function showExamSummary(total, correct, answered) {
+    const content = document.getElementById('examContent');
+    const summary = document.createElement('div');
+    summary.className = 'exam-result-summary';
+
+    const objectiveTotal = total - (currentExam.short ? currentExam.short.length : 0);
+    const objectiveCorrect = correct;
+
+    let score = 0;
+    if (objectiveTotal > 0) {
+        score = Math.round((objectiveCorrect / objectiveTotal) * 100);
+    }
+
+    summary.innerHTML = `
+        <h3>📊 考试结果</h3>
+        <div class="score-big">${score}<span style="font-size:20px;">分</span></div>
+        <p>客观题：${objectiveCorrect} / ${objectiveTotal} 题正确</p>
+        <p>已作答：${answered} / ${total} 题</p>
+        <p style="margin-top:12px;font-size:13px;color:#999;">简答题已单独评分，请查看下方各题评分</p>
+    `;
+
+    content.insertBefore(summary, content.firstChild);
+    summary.scrollIntoView({ behavior: 'smooth' });
+}
+
+// 启动时检查状态
+checkStatus();
+</script>
+</body>
+</html>

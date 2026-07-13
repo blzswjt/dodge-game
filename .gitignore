@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.db
+.env
+*.log
+uploads/*
+!uploads/.gitkeep
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 项目数据
+finance-qa/data/*.xlsx
+zhimu-education/public/textbooks/*.pdf
+reader-agent/uploads/*.pdf
