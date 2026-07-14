@@ -318,10 +318,10 @@ function gameOver() {
 
   overlay.classList.add('active');
   overlay.innerHTML = `
-    <h2>💥 游戏结束</h2>
+    <h2 style="color:#ff4444">💀 牢弟你也没实力啊</h2>
     <p class="final">坚持了 ${elapsed.toFixed(1)} 秒</p>
     ${elapsed >= bestTime ? '<p style="color:#ffd700">🎉 新纪录！</p>' : ''}
-    <button id="startBtn" onclick="restart()">再来一次</button>
+    <p style="color:#aaa; font-size:13px; margin-top:8px;">按空格键重新开始</p>
   `;
 }
 
